@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代金券二维码管理系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background: #e9ecef;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .voucher-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .voucher-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 2px solid #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voucher-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .voucher-card.used {
+            opacity: 0.6;
+            border-color: #e74c3c;
+        }
+
+        .voucher-card.expired {
+            opacity: 0.5;
+            border-color: #f39c12;
+        }
+
+        .voucher-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .voucher-amount {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2ecc71;
+        }
+
+        .voucher-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-used {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-expired {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .scanner-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        #scanner {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .scanner-result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border-left: 5px solid #2ecc71;
+        }
+
+        .voucher-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .voucher-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 代金券管理系统</h1>
+            <p>轻松创建和管理您的代金券</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('create')">创建代金券</button>
+            <button class="tab-button" onclick="switchTab('manage')">管理代金券</button>
+            <button class="tab-button" onclick="switchTab('scanner')">扫码核销</button>
+        </div>
+
+        <!-- 创建代金券 -->
+        <div id="create-tab" class="tab-content active">
+            <h2>创建新代金券</h2>
+            <form id="voucher-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="amount">面值 (¥)</label>
+                        <input type="number" id="amount" min="1" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usage-type">使用类型</label>
+                        <select id="usage-type" required>
+                            <option value="single">一次性使用</option>
+                            <option value="multiple">可多次使用</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="max-uses">最大使用次数</label>
+                        <input type="number" id="max-uses" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="valid-until">有效期至</label>
+                        <input type="datetime-local" id="valid-until" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="store-count">可使用门店数</label>
+                        <input type="number" id="store-count" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">生成数量</label>
+                        <input type="number" id="quantity" min="1" max="100" value="1">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="description">描述</label>
+                        <textarea id="description" rows="3" placeholder="代金券使用说明..."></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn">🎫 生成代金券</button>
+            </form>
+        </div>
+
+        <!-- 管理代金券 -->
+        <div id="manage-tab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>代金券管理</h2>
+                <div>
+                    <select id="status-filter" onchange="filterVouchers()">
+                        <option value="all">全部状态</option>
+                        <option value="active">可用</option>
+                        <option value="used">已使用</option>
+                        <option value="expired">已过期</option>
+                    </select>
+                </div>
+            </div>
+            <div id="voucher-list" class="voucher-list"></div>
+        </div>
+
+        <!-- 扫码核销 -->
+        <div id="scanner-tab" class="tab-content">
+            <div class="scanner-container">
+                <h2>扫码核销代金券</h2>
+                <p>使用摄像头扫描代金券二维码进行核销</p>
+                
+                <div style="margin: 20px 0;">
+                    <button id="start-scanner" class="btn">📷 开始扫描</button>
+                    <button id="stop-scanner" class="btn btn-danger" style="display: none;">⏹️ 停止扫描</button>
+                </div>
+                
+                <video id="scanner" style="display: none;"></video>
+                
+                <div style="margin-top: 20px;">
+                    <label for="manual-code">或手动输入代金券编号：</label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="text" id="manual-code" placeholder="输入代金券编号" style="flex: 1;">
+                        <button onclick="processVoucher(document.getElementById('manual-code').value)" class="btn">核销</button>
+                    </div>
+                </div>
+                
+                <div id="scanner-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let vouchers = JSON.parse(localStorage.getItem('vouchers') || '[]');
+        let scannerStream = null;
+        let isScanning = false;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认有效期为明天
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('valid-until').value = tomorrow.toISOString().slice(0, 16);
+
+            // 监听使用类型变化
+            document.getElementById('usage-type').addEventListener('change', function() {
+                const maxUsesField = document.getElementById('max-uses');
+                if (this.value === 'single') {
+                    maxUsesField.value = '1';
+                    maxUsesField.disabled = true;
+                } else {
+                    maxUsesField.disabled = false;
+                }
+            });
+
+            updateVoucherList();
+        });
+
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签按钮的活动状态
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // 显示当前标签内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // 停止扫描器（如果正在运行）
+            if (tabName !== 'scanner' && scannerStream) {
+                stopScanner();
+            }
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return 'V' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        // 创建代金券
+        document.getElementById('voucher-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                amount: parseFloat(document.getElementById('amount').value),
+                usageType: document.getElementById('usage-type').value,
+                maxUses: parseInt(document.getElementById('max-uses').value),
+                validUntil: document.getElementById('valid-until').value,
+                storeCount: parseInt(document.getElementById('store-count').value),
+                quantity: parseInt(document.getElementById('quantity').value),
+                description: document.getElementById('description').value
+            };
+
+            // 生成指定数量的代金券
+            for (let i = 0; i < formData.quantity; i++) {
+                const voucher = {
+                    id: generateId(),
+                    amount: formData.amount,
+                    usageType: formData.usageType,
+                    maxUses: formData.maxUses,
+                    currentUses: 0,
+                    validUntil: new Date(formData.validUntil),
+                    storeCount: formData.storeCount,
+                    description: formData.description,
+                    createdAt: new Date(),
+                    status: 'active'
+                };
+
+                vouchers.push(voucher);
+            }
+
+            // 保存到本地存储
+            localStorage.setItem('vouchers', JSON.stringify(vouchers));
+
+            // 更新列表
+            updateVoucherList();
+
+            // 显示成功消息
+            showAlert('success', `成功创建 ${formData.quantity} 张代金券！`);
+
+            // 重置表单
+            document.getElementById('voucher-form').reset();
+            
+            // 重新设置默认值
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('valid-until').value = tomorrow.toISOString().slice(0, 16);
+        });
+
+        // 更新代金券列表
+        function updateVoucherList() {
+            const container = document.getElementById('voucher-list');
+            const filter = document.getElementById('status-filter').value;
+            
+            let filteredVouchers = vouchers;
+            if (filter !== 'all') {
+                filteredVouchers = vouchers.filter(v => getVoucherStatus(v) === filter);
+            }
+
+            if (filteredVouchers.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; grid-column: 1 / -1;">暂无代金券</p>';
+                return;
+            }
+
+            container.innerHTML = filteredVouchers.map(voucher => {
+                const status = getVoucherStatus(voucher);
+                const qrData = JSON.stringify({
+                    id: voucher.id,
+                    amount: voucher.amount,
+                    type: 'voucher'
+                });
+
+                return `
+                    <div class="voucher-card ${status}">
+                        <div class="voucher-header">
+                            <div class="voucher-amount">¥${voucher.amount}</div>
+                            <div class="voucher-status status-${status}">
+                                ${status === 'active' ? '可用' : status === 'used' ? '已使用' : '已过期'}
+                            </div>
+                        </div>
+                        
+                        <div class="voucher-details">
+                            <div class="detail-row">
+                                <span>券号:</span>
+                                <span>${voucher.id}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>类型:</span>
+                                <span>${voucher.usageType === 'single' ? '一次性' : '多次使用'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>使用次数:</span>
+                                <span>${voucher.currentUses}/${voucher.maxUses}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>有效期至:</span>
+                                <span>${new Date(voucher.validUntil).toLocaleString()}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>可用门店:</span>
+                                <span>${voucher.storeCount} 家</span>
+                            </div>
+                            ${voucher.description ? `
+                            <div class="detail-row">
+                                <span>说明:</span>
+                                <span>${voucher.description}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="qr-code">
+                            <div id="qr-${voucher.id}"></div>
+                            <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">扫描二维码使用</p>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="downloadQR('${voucher.id}')" class="btn" style="flex: 1; padding: 8px;">下载二维码</button>
+                            <button onclick="deleteVoucher('${voucher.id}')" class="btn btn-danger" style="flex: 1; padding: 8px;">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 生成二维码
+            filteredVouchers.forEach(voucher => {
+                const qrData = JSON.stringify({
+                    id: voucher.id,
+                    amount: voucher.amount,
+                    type: 'voucher'
+                });
+                
+                QRCode.toCanvas(document.getElementById(`qr-${voucher.id}`), qrData, {
+                    width: 150,
+                    margin: 2
+                });
+            });
+        }
+
+        // 获取代金券状态
+        function getVoucherStatus(voucher) {
+            if (voucher.currentUses >= voucher.maxUses) return 'used';
+            if (new Date() > new Date(voucher.validUntil)) return 'expired';
+            return 'active';
+        }
+
+        // 筛选代金券
+        function filterVouchers() {
+            updateVoucherList();
+        }
+
+        // 删除代金券
+        function deleteVoucher(id) {
+            if (!checkPermission('admin')) {
+                showAlert('danger', '只有管理员可以删除代金券');
+                return;
+            }
+            
+            if (confirm('确定要删除这张代金券吗？')) {
+                vouchers = vouchers.filter(v => v.id !== id);
+                localStorage.setItem('vouchers', JSON.stringify(vouchers));
+                updateVoucherList();
+                showAlert('success', '代金券已删除');
+            }
+        }
+
+        // 下载二维码
+        function downloadQR(voucherId) {
+            const canvas = document.querySelector(`#qr-${voucherId} canvas`);
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `voucher-${voucherId}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        }
+
+        // 开始扫描
+        document.getElementById('start-scanner').addEventListener('click', async function() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }
+                });
+                
+                const video = document.getElementById('scanner');
+                video.srcObject = stream;
+                video.style.display = 'block';
+                video.play();
+                
+                scannerStream = stream;
+                isScanning = true;
+                
+                document.getElementById('start-scanner').style.display = 'none';
+                document.getElementById('stop-scanner').style.display = 'inline-block';
+                
+                showAlert('success', '扫描器已启动，请将二维码对准摄像头');
+                
+                // 开始检测二维码（这里简化实现，实际项目中需要使用专门的QR码识别库）
+                startQRDetection(video);
+                
+            } catch (err) {
+                showAlert('danger', '无法访问摄像头：' + err.message);
+            }
+        });
+
+        // 停止扫描
+        document.getElementById('stop-scanner').addEventListener('click', stopScanner);
+
+        function stopScanner() {
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(track => track.stop());
+                scannerStream = null;
+            }
+            
+            const video = document.getElementById('scanner');
+            video.style.display = 'none';
+            video.srcObject = null;
+            
+            isScanning = false;
+            
+            document.getElementById('start-scanner').style.display = 'inline-block';
+            document.getElementById('stop-scanner').style.display = 'none';
+        }
+
+        // 简化的二维码检测（实际应用中需要使用专门的库如jsQR）
+        function startQRDetection(video) {
+            // 这里是模拟实现，实际项目中需要集成jsQR或类似库
+            // 由于无法在这个环境中导入jsQR，我们提供手动输入功能
+            showAlert('success', '请手动输入代金券编号或使用专业二维码扫描应用扫描后输入编号');
+        }
+
+        // 处理代金券核销
+        function processVoucher(voucherId) {
+            if (!voucherId) {
+                showAlert('danger', '请输入有效的代金券编号');
+                return;
+            }
+
+            // 查找代金券
+            const voucher = vouchers.find(v => v.id === voucherId);
+            
+            if (!voucher) {
+                showAlert('danger', '代金券不存在');
+                return;
+            }
+
+            const status = getVoucherStatus(voucher);
+            
+            if (status === 'used') {
+                showAlert('danger', '代金券已使用完毕');
+                return;
+            }
+            
+            if (status === 'expired') {
+                showAlert('danger', '代金券已过期');
+                return;
+            }
+
+            // 核销代金券
+            voucher.currentUses++;
+            localStorage.setItem('vouchers', JSON.stringify(vouchers));
+            
+            // 显示核销结果
+            const resultHtml = `
+                <div class="scanner-result">
+                    <h3 style="color: #2ecc71; margin-bottom: 15px;">✅ 核销成功</h3>
+                    <div class="voucher-details">
+                        <div class="detail-row">
+                            <span>券号:</span>
+                            <span>${voucher.id}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>面值:</span>
+                            <span style="font-size: 1.5em; color: #2ecc71; font-weight: bold;">¥${voucher.amount}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>剩余次数:</span>
+                            <span>${voucher.maxUses - voucher.currentUses}/${voucher.maxUses}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>核销时间:</span>
+                            <span>${new Date().toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: 15px; color: #28a745; font-weight: bold;">
+                        请在POS机上减免 ¥${voucher.amount}
+                    </p>
+                </div>
+            `;
+            
+            document.getElementById('scanner-result').innerHTML = resultHtml;
+            document.getElementById('manual-code').value = '';
+            
+            // 更新代金券列表
+            updateVoucherList();
+            
+            showAlert('success', `成功核销 ¥${voucher.amount} 代金券`);
+        }
+
+        // 显示使用记录
+        function showUsageHistory(voucherId) {
+            const voucher = vouchers.find(v => v.id === voucherId);
+            if (!voucher || !voucher.usageHistory || voucher.usageHistory.length === 0) {
+                showAlert('success', '暂无使用记录');
+                return;
+            }
+            
+            const historyHtml = voucher.usageHistory.map((usage, index) => `
+                <div style="background: white; padding: 15px; border-radius: 10px; border-left: 5px solid #667eea; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold;">第${index + 1}次使用</span>
+                        <span style="color: #6c757d; font-size: 12px;">${new Date(usage.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <span>使用金额: </span>
+                        <span style="color: #e74c3c; font-weight: bold;">¥${usage.amount}</span>
+                        <span style="margin-left: 20px;">剩余: </span>
+                        <span style="color: #2ecc71; font-weight: bold;">¥${usage.remainingAfter}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5); z-index: 1000;
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 15px; padding: 30px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>使用记录 - ${voucher.id}</h3>
+                        <button onclick="this.closest('[style*=\"position: fixed\"]').remove()" 
+                                style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d;">×</button>
+                    </div>
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>原始面值:</span>
+                            <span style="font-weight: bold;">¥${voucher.amount}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>已使用:</span>
+                            <span style="color: #e74c3c; font-weight: bold;">¥${voucher.amount - (voucher.remainingAmount || 0)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>剩余金额:</span>
+                            <span style="color: #2ecc71; font-weight: bold;">¥${voucher.remainingAmount || 0}</span>
+                        </div>
+                    </div>
+                    ${historyHtml}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 点击背景关闭
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        // 显示提示消息
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const container = document.querySelector('.tab-content.active');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
